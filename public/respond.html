@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valentine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg1:#ff9a9e;--bg2:#fecfef;--card:#fff;--accent:#ff4d6d}
+    html,body{height:100%;margin:0}
+    body{font-family:'Poppins',system-ui,Segoe UI,Arial;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg1),var(--bg2));}
+    .card{width:min(720px,94vw);background:rgba(255,255,255,0.95);border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.18);padding:36px;text-align:center}
+    h1{margin:0;font-weight:700;font-size:28px;color:#333}
+    p.lead{color:#555;margin:12px 0 24px;font-size:18px}
+    #controls{display:flex;gap:16px;justify-content:center}
+    .btn{border:0;padding:12px 24px;border-radius:12px;font-size:16px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.12);transition:all 0.3s ease}
+    .btn-yes{background:linear-gradient(90deg,#ff9aa2,#ff6b8a);color:white}
+    .btn-no{background:transparent;border:2px solid rgba(0,0,0,0.08);color:#333}
+    .btn:disabled{opacity:0.5;cursor:not-allowed;box-shadow:none}
+    #result{margin-top:20px;font-size:20px}
+    #confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+    .bubble{position:fixed;right:10%;padding:14px 20px;background:rgba(255,77,109,0.95);color:white;border-radius:999px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.18);transform:translateY(0);opacity:1}
+    .bubble.small{padding:8px 12px;font-size:14px}
+    @keyframes floatUp{0%{transform:translateY(60px) scale(0.95);opacity:0}10%{opacity:1}100%{transform:translateY(-160vh) scale(1);opacity:0}}
+    .lux-heart{width:120px;height:120px;margin:18px auto;background:linear-gradient(45deg,#ff7a9e,#ff3b6b);clip-path:path('');border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;box-shadow:0 12px 40px rgba(255,77,109,0.35);}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hi — this is a short question</h1>
+    <p class="lead">Will you be my Valentine?</p>
+    <div id="controls">
+      <button id="yes" class="btn btn-yes">Yes</button>
+      <button id="no" class="btn btn-no">No</button>
+    </div>
+    <div id="result" class="hidden"></div>
+  </div>
+
+  <canvas id="confetti" class="hidden"></canvas>
+
+  <script>
+    const token = location.pathname.split('/').pop();
+    const yesBtn = document.getElementById('yes');
+    const noBtn = document.getElementById('no');
+    const result = document.getElementById('result');
+    const confettiCanvas = document.getElementById('confetti');
+    let animationFrameId = null;
+
+    async function postAnswer(a) {
+      try {
+        const res = await fetch('/api/respond', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ token, answer: a })
+        });
+        return await res.json();
+      } catch (e) { return { error: e.message || 'network' }; }
+    }
+
+    yesBtn.onclick = async () => {
+      if (yesBtn.disabled) return;
+      yesBtn.disabled = true; noBtn.disabled = true;
+      const r = await postAnswer('yes');
+      if (r && r.ok) {
+        // stop No bubbles, then show celebration
+        stopNoBubbles();
+        showYes();
+      } else showError();
+      setTimeout(() => { yesBtn.disabled = false; noBtn.disabled = false; }, 300);
+    };
+
+    noBtn.onclick = async () => {
+      if (noBtn.disabled) return;
+      noBtn.disabled = true; yesBtn.disabled = true;
+      const r = await postAnswer('no');
+      if (r && r.ok) {
+        // stop confetti, then start No bubbles
+        stopConfetti();
+        startNoBubbles();
+      } else showError();
+      setTimeout(() => { yesBtn.disabled = false; noBtn.disabled = false; }, 300);
+    };
+
+    // stop everything
+    function clearAllEffects(){
+      stopConfetti();
+      stopNoBubbles();
+      result.innerHTML = '';
+      result.classList.add('hidden');
+    }
+
+    // stop only confetti animation
+    function stopConfetti(){
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+      try { const ctx = confettiCanvas.getContext('2d'); ctx && ctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); } catch(e){}
+      confettiCanvas.classList.add('hidden');
+    }
+
+    // stop only No bubbles
+    let noBubblesActive = false;
+    function stopNoBubbles(){
+      noBubblesActive = false;
+      document.querySelectorAll('.bubble').forEach(b => b.remove());
+    }
+
+    function showError(){result.classList.remove('hidden');result.textContent='Something went wrong. Please try again.'}
+
+    function startNoBubbles(){
+      result.classList.remove('hidden');
+      result.textContent = "No";
+      result.style.color = '#333';
+      // spawn repeating 'No' bubbles
+      noBubblesActive = true;
+      let count = 0;
+      const spawn = () => {
+        if (!noBubblesActive) return;
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        b.style.right = (8 + Math.random()*30) + '%';
+        b.style.bottom = '-40px';
+        b.textContent = 'No';
+        document.body.appendChild(b);
+        const dur = 4000 + Math.random()*3000;
+        b.style.transition = `transform ${dur}ms linear, opacity ${dur}ms linear`;
+        requestAnimationFrame(()=>{ b.style.transform = 'translateY(-220vh)'; b.style.opacity='0'; });
+        setTimeout(()=>{ b.remove(); }, dur+100);
+        count++;
+        if (count < 50) setTimeout(spawn, 500 + Math.random()*800);
+      };
+      spawn();
+    }
+
+    function showYes(){
+      result.classList.remove('hidden');
+      result.innerHTML = '<div class="lux-heart">❤</div><div style="font-size:20px;font-weight:600;color:#333">Yes! 🎉 Thank you! Sagorika my Love</div>';
+      confettiCanvas.classList.remove('hidden');
+      startConfetti();
+    }
+
+    // Confetti implementation
+    function startConfetti(){
+      const ctx = confettiCanvas.getContext('2d');
+      confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; confettiCanvas.style.zIndex = 50;
+      const pieces = [];
+      for (let i=0;i<300;i++) pieces.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight-2*innerHeight,vy:2+Math.random()*6, r:Math.random()*6+4, color:`hsl(${Math.random()*360} 90% 60%)`, rot: Math.random()*360});
+      let t0 = performance.now();
+      function loop(t){ const dt = t - t0; t0 = t; ctx.clearRect(0,0,innerWidth,innerHeight); pieces.forEach(p=>{ p.y += p.vy; p.x += Math.sin((p.y+p.vy)/20); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore(); if (p.y>innerHeight+50){ p.y = -50; p.x = Math.random()*innerWidth; } }); requestAnimationFrame(loop);} requestAnimationFrame(loop);
+    }
+  </script>
+</bod>
+</html>

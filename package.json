@@ -1,0 +1,18 @@
+{
+  "name": "valentine-email",
+  "version": "1.0.0",
+  "description": "Send a short valentine email and track replies",
+  "main": "send_valentine.js",
+  "scripts": {
+    "send": "node send_valentine.js send",
+    "check": "node send_valentine.js check",
+    "status": "node send_valentine.js status",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "imap-simple": "^5.0.0",
+    "mailparser": "^3.5.0",
+    "nodemailer": "^6.9.0"
+  }
+}

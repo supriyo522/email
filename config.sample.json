@@ -1,0 +1,15 @@
+{
+  "from_email": "supriyonag552@gmail.com",
+  "password": "xnenhvoqaogqkmzo",
+  "from_name": "Email env",
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_secure": false,
+  "imap_server": "imap.gmail.com",
+  "imap_port": 993,
+  "subject": "Will you be my Valentine?",
+  "body": "Hi — this is a short question: will you be my Valentine?\nPlease reply with 'Yes' or 'No'.",
+  "recipients": [
+    "sagorikaghosh2903@gmail.com"
+  ]
+}
