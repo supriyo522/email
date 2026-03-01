@@ -27,6 +27,7 @@
   </style>
 </head>
 <body>
+
   <div class="card">
     <h1>Hi — this is a short question</h1>
     <p class="lead">Will you be my Valentine?</p>
@@ -63,6 +64,7 @@
       const r = await postAnswer('yes');
       if (r && r.ok) {
         // stop No bubbles, then show celebration
+          //noow
         stopNoBubbles();
         showYes();
       } else showError();
